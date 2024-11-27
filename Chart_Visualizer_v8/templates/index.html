@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Price Viewer</title>
+</head>
+<body>
+    <h1>Stock Price and Return Viewer</h1>
+    <form id="stockForm">
+        <label for="ticker">Stock Ticker:</label>
+        <input type="text" id="ticker" name="ticker" required>
+        
+        <label for="period">Timeframe:</label>
+        <select id="period" name="period" onchange="updateModeOptions()">
+            <option value="1d">1 Day</option>
+            <option value="1mo">1 Month</option>
+            <option value="3mo">3 Months</option>
+            <option value="6mo">6 Months</option>
+            <option value="1y">1 Year</option>
+            <option value="3y">3 Years</option>
+            <option value="5y">5 Years</option>
+        </select>
+        
+        <label for="mode">Mode:</label>
+        <select id="mode" name="mode">
+            <option value="price">Price</option>
+            <option value="returns">Returns</option>
+            <option value="tomorrow" disabled>Tomorrow's Prediction</option>
+        </select>
+        
+        <button type="submit">View Chart</button>
+    </form>
+    
+    <div id="chart">
+        <img id="plot" src="" alt="Stock Chart">
+        <div id="prediction"></div>
+    </div>
+    
+    <script>
+        // Function to enable/disable "Tomorrow's Prediction" option
+        function updateModeOptions() {
+            const period = document.getElementById("period").value;
+            const tomorrowOption = document.querySelector("option[value='tomorrow']");
+            
+            if (period === "1d") {
+                tomorrowOption.disabled = true;
+            } else {
+                tomorrowOption.disabled = false;
+            }
+        }
+
+        document.getElementById("stockForm").onsubmit = function(event) {
+            event.preventDefault();
+            const ticker = document.getElementById("ticker").value;
+            const period = document.getElementById("period").value;
+            const mode = document.getElementById("mode").value;
+
+            fetch("/", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({ ticker, period, mode })
+        })
+        .then(response => response.json())
+        .then(data => {
+        if (mode === "tomorrow") {
+            document.getElementById("plot").src = "data:image/png;base64," + data.plot_url;
+            document.getElementById("prediction").innerHTML = `
+                Predicted Price for Tomorrow: $${data.predicted_price.toFixed(2)}<br>
+                Model Accuracy (MSE): ${data.mse ? data.mse.toFixed(4) : "Unavailable"}
+            `;
+        } else {
+            document.getElementById("plot").src = "data:image/png;base64," + data.plot_url;
+            document.getElementById("prediction").innerText = "";
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById("prediction").innerText = "An error occurred while fetching the data. Please try again.";
+    });
+};
+
+
+    </script>
+</body>
+</html>
